@@ -23,8 +23,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/Tumb1er1376/vps-residual-value-calculator.git
-cd vps-residual-value-calculator
+git clone https://github.com/Tumb1er1376/vps-jsq.git
+cd vps-jsq
 ```
 
 ### 2. 创建配置
