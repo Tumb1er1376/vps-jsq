@@ -1,46 +1,104 @@
-# VPS 剩余价值计算器
+# VPS Residual Value Calculator
 
-## 🚀项目简介
+A maintained fork of [hahabye/vps_jsq](https://github.com/hahabye/vps_jsq) for estimating the remaining value of VPS subscriptions.
 
-VPS 剩余价值计算器是一个帮助用户精确计算 VPS 产品剩余价值和剩余时间的工具。
+This fork keeps the original GPL-3.0 license and adds a redesigned frontend, a validated Python API, generated SVG share cards, containerized deployment, tests, and GitHub Actions.
 
-只需要输入续费金额，选择对应的付款周期、到期时间和交易日期，即可获取 VPS 剩余价值、剩余天数等信息。
+## Features
 
-计算器支持多种支付货币和付款周期，外币汇率每日自动更新，支持自定义汇率计算，并提供一键分享计算结果图片功能。
+- Monthly, quarterly, semiannual, annual, two-year, three-year, and five-year billing cycles
+- Reference exchange rates with optional custom-rate comparison
+- Calendar-aware remaining-value calculation
+- Compact SVG share cards with Markdown copy support
+- Responsive light UI with accessible focus states
+- Bounded request payloads and generated-share storage
+- Separate non-root web/API containers with health checks
+- Unit tests and CI container builds
 
-## ⚡功能特点
+## Quick Start
 
-- 交互合理
-- 简洁清晰的计算结果
-- 汇率每日自动更新，并且支持自定义汇率计算
-- 更准确的算法，比如大小月非直接取30天计算
-- 一键导出计算结果为图片，支持分享
-- 适应不同的屏幕，电脑和手机浏览器上体验良好
-- 首创 SVG 图片分享，速度更快、体验更佳、流量更省
+```bash
+cp .env.example .env
+# Edit PUBLIC_BASE_URL in .env
+docker compose up -d --build
+```
 
+Default local endpoints:
 
-## 💻在线示例
+- Web (including `/api/` and `/share/` proxying): `http://127.0.0.1:18088`
+- Direct API/debug port: `http://127.0.0.1:18089`
 
-https://tools.196000.xyz/jsq
+Use `deploy/Caddyfile.example` as a reverse-proxy template. Replace `vps.example.com` with your domain.
 
-## 📷运行截图
+## Configuration
 
-![VPS 剩余价值计算器](docs/screenshots/jsq.png)
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PUBLIC_BASE_URL` | `http://localhost:18088` in Compose | Base URL embedded in generated share links |
+| `WEB_PORT` | `18088` | Host loopback port for the frontend |
+| `API_PORT` | `18089` | Host loopback port for the API |
+| `WEB_IMAGE` | local build | Optional prebuilt frontend image |
+| `API_IMAGE` | local build | Optional prebuilt API image |
 
-## 📝部署使用
+The API stores generated SVG cards in the `share-data` volume. It keeps at most 2,000 files. A separate retention job can remove cards older than your desired sharing window.
 
-- 使用 docker 一键部署（推荐）
-    ```shell
-    docker run -d --name=jsq --rm -p=8088:80 hahabye/vps_jsq:latest
-    ```
-- 下载最新版本，无外部依赖单文件自行部署
+### Calculation convention
 
-## 📢其它讨论
+The selected billing price is treated as the price of one billing cycle. Remaining value is calculated over all days between the trade date and expiry date. It is intentionally not capped to one billing cycle, so a monthly subscription with more than one month remaining can have a remaining value greater than its displayed monthly cycle price.
 
-- [剩余价值计算器源由](https://www.nodeseek.com/post-172415-1)
-- [计算结果 SVG 图片分享，速度更快、体验更佳、流量更省](https://www.nodeseek.com/post-291879-1)
-- [cloudflare pages 免域名免空间 0 成本部署 vps 剩余价值计算器](https://www.nodeseek.com/post-319981-1)
+## Development
 
-## 📧我要反馈
+Run backend tests:
 
-[hello@196000.xyz](mailto:hello@196000.xyz)
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Validate frontend asset references:
+
+```bash
+python3 scripts/check_web_assets.py
+```
+
+Build both containers:
+
+```bash
+docker compose build
+```
+
+## API
+
+### `GET /api/vps/rates`
+
+Returns the supported CNY exchange rates. When the upstream provider is unavailable, the API currently falls back to bundled estimates.
+
+### `POST /api/vps/jsq`
+
+```json
+{
+  "exchange_rate": "6.780",
+  "custom_exchange_rate": "7.000",
+  "renew_money": "10",
+  "currency_code": "USD",
+  "cycle": "monthly",
+  "expiry_date": "2026-12-31",
+  "trade_date": "2026-07-18"
+}
+```
+
+Request bodies are limited to 16 KiB and must use `application/json`.
+
+## Deployment Notes
+
+- Bind the web and API ports to loopback and expose them through Caddy, Nginx, or another TLS reverse proxy.
+- Put public rate limiting in front of `/api/vps/jsq` when deploying to a high-traffic domain.
+- Do not commit `.env`, generated SVG files, backups, or runtime caches.
+- The provided images run as non-root users and drop Linux capabilities.
+
+## Attribution and License
+
+Based on [hahabye/vps_jsq](https://github.com/hahabye/vps_jsq). Original project discussions and attribution remain available in the upstream repository history.
+
+Licensed under the GNU General Public License v3.0. See [LICENSE.txt](LICENSE.txt). Modified versions must remain GPL-compatible and preserve license notices.
+
+Bundled third-party software notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

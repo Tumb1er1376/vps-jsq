@@ -1,0 +1,22 @@
+FROM nginxinc/nginx-unprivileged:1.27-alpine
+
+ARG VCS_REF=""
+ARG VCS_URL="https://github.com/your-user/vps-residual-value-calculator"
+LABEL org.opencontainers.image.title="VPS Residual Value Calculator Web" \
+      org.opencontainers.image.source=$VCS_URL \
+      org.opencontainers.image.revision=$VCS_REF \
+      org.opencontainers.image.licenses="GPL-3.0-only"
+
+USER root
+COPY --chown=101:101 docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=101:101 web/ /usr/share/nginx/html/
+COPY --chown=101:101 LICENSE.txt THIRD_PARTY_NOTICES.md /usr/share/licenses/vps-residual-value-calculator/
+RUN chmod 0644 /etc/nginx/conf.d/default.conf \
+    && find /usr/share/nginx/html -type d -exec chmod 0755 {} + \
+    && find /usr/share/nginx/html -type f -exec chmod 0644 {} +
+USER 101
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1

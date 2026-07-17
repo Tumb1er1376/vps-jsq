@@ -1,0 +1,12 @@
+.git
+.github
+__pycache__
+*.pyc
+.env
+share
+override
+tests
+scripts
+deploy
+*.bak
+*.bak.*

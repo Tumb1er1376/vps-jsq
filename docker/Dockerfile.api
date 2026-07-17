@@ -1,0 +1,30 @@
+FROM python:3.12-alpine
+
+ARG VCS_REF=""
+ARG VCS_URL="https://github.com/your-user/vps-residual-value-calculator"
+LABEL org.opencontainers.image.title="VPS Residual Value Calculator API" \
+      org.opencontainers.image.source=$VCS_URL \
+      org.opencontainers.image.revision=$VCS_REF \
+      org.opencontainers.image.licenses="GPL-3.0-only"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOST=0.0.0.0 \
+    PORT=8080 \
+    SHARE_DIR=/data/share
+
+RUN addgroup -S app && adduser -S -G app -h /app app \
+    && mkdir -p /app /data/share \
+    && chown -R app:app /app /data/share
+
+WORKDIR /app
+COPY --chown=app:app api_server.py /app/api_server.py
+COPY --chown=app:app LICENSE.txt THIRD_PARTY_NOTICES.md /app/licenses/
+
+USER app
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)" || exit 1
+
+CMD ["python", "/app/api_server.py"]
